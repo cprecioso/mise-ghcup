@@ -1,0 +1,33 @@
+amends "package://github.com/jdx/hk/releases/download/v1.18.1/hk@1.18.1#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v1.18.1/hk@1.18.1#/Builtins.pkl"
+
+local linters = new Mapping<String, Step> {
+    ["lua-check"] {
+        glob = "**/*.lua"
+        check = "lua-language-server --check ."
+    }
+    ["stylua"] {
+        glob = "**/*.lua"
+        check = "stylua --check {{files}}"
+        fix = "stylua {{files}}"
+    }
+    ["actionlint"] {
+        glob = ".github/workflows/*.{yml,yaml}"
+        check = "actionlint {{files}}"
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}
