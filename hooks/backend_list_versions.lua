@@ -1,85 +1,72 @@
 --- Lists available versions for a tool in this backend
 --- Documentation: https://mise.jdx.dev/backend-plugin-development.html#backendlistversions
---- @param ctx {tool: string} Context (tool = the tool name requested)
---- @return {versions: string[]} Table containing list of available versions
+--- @param ctx BackendListVersionsCtx
+--- @return BackendListVersionsResult
 function PLUGIN:BackendListVersions(ctx)
     local tool = ctx.tool
-
-    -- Validate tool name
     if not tool or tool == "" then
         error("Tool name cannot be empty")
     end
 
-    -- Example implementations (choose/modify based on your backend):
+    local cmd = require("cmd")
+    local strings = require("strings")
+    local semver = require("semver")
 
-    -- Example 1: API-based version listing (like npm, pip, cargo)
-    local http = require("http")
-    local json = require("json")
+    local ghcup_bin = find_ghcup(cmd, strings)
 
-    -- Replace with your backend's API endpoint
-    local api_url = "https://api.<BACKEND>.org/packages/" .. tool .. "/versions"
+    -- List available versions
+    local output = cmd.exec(ghcup_bin .. " list -t " .. tool .. " -r")
 
-    local resp, err = http.get({
-        url = api_url,
-        -- headers = { ["Authorization"] = "Bearer " .. token } -- if needed
-    })
-
-    if err then
-        error("Failed to fetch versions for " .. tool .. ": " .. err)
-    end
-
-    if resp.status_code ~= 200 then
-        error("API returned status " .. resp.status_code .. " for " .. tool)
-    end
-
-    local data = json.decode(resp.body)
     local versions = {}
-
-    -- Parse versions from API response (adjust based on your API structure)
-    if data.versions then
-        for _, version in ipairs(data.versions) do
-            table.insert(versions, version)
+    for _, line in ipairs(strings.split(output, "\n")) do
+        line = strings.trim_space(line)
+        if line ~= "" then
+            -- ghcup list output has version as the 2nd whitespace-delimited field
+            local version = line:match("^%S+%s+(%S+)")
+            if version then
+                table.insert(versions, version)
+            end
         end
     end
-
-    -- Example 2: Command-line based version listing
-    --[[
-    local cmd = require("cmd")
-
-    -- Replace with your backend's command to list versions
-    local command = "<BACKEND> search " .. tool .. " --versions"
-    local result = cmd.exec(command)
-
-    if not result or result:match("error") then
-        error("Failed to fetch versions for " .. tool)
-    end
-
-    local versions = {}
-    -- Parse command output to extract versions
-    for version in result:gmatch("[%d%.]+[%w%-]*") do
-        table.insert(versions, version)
-    end
-    --]]
-
-    -- Example 3: Registry file parsing
-    --[[
-    local file = require("file")
-
-    -- Replace with path to your backend's registry or manifest
-    local registry_path = "/path/to/<BACKEND>/registry/" .. tool .. ".json"
-
-    if not file.exists(registry_path) then
-        error("Tool " .. tool .. " not found in registry")
-    end
-
-    local content = file.read(registry_path)
-    local data = json.decode(content)
-    local versions = data.versions or {}
-    --]]
 
     if #versions == 0 then
         error("No versions found for " .. tool)
     end
 
+    versions = semver.sort(versions)
+
     return { versions = versions }
+end
+
+--- Locate ghcup binary: prefer system install, fallback to bootstrap
+--- @param cmd cmd
+--- @param strings strings
+--- @return string path to ghcup binary
+function find_ghcup(cmd, strings) -- luacheck: ignore
+    local ok, result = pcall(cmd.exec, "command -v ghcup")
+    if ok and result and strings.trim_space(result) ~= "" then
+        return strings.trim_space(result)
+    end
+
+    -- Bootstrap ghcup into plugin directory
+    local plugin_dir = RUNTIME.pluginDirPath
+    local file = require("file")
+    local ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+
+    if not file.exists(ghcup_path) then
+        local log = require("log")
+        log.info("Bootstrapping ghcup into " .. plugin_dir)
+        cmd.exec(
+            "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
+                .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
+                .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
+                .. "GHCUP_INSTALL_BASE_PREFIX="
+                .. plugin_dir
+                .. " "
+                .. "GHCUP_USE_XDG_DIRS='' "
+                .. "sh"
+        )
+    end
+
+    return ghcup_path
 end

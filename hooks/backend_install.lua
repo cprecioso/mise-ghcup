@@ -1,13 +1,12 @@
 --- Installs a specific version of a tool
 --- Documentation: https://mise.jdx.dev/backend-plugin-development.html#backendinstall
---- @param ctx {tool: string, version: string, install_path: string} Context
---- @return table Empty table on success
+--- @param ctx BackendInstallCtx
+--- @return BackendInstallResult
 function PLUGIN:BackendInstall(ctx)
     local tool = ctx.tool
     local version = ctx.version
     local install_path = ctx.install_path
 
-    -- Validate inputs
     if not tool or tool == "" then
         error("Tool name cannot be empty")
     end
@@ -18,86 +17,60 @@ function PLUGIN:BackendInstall(ctx)
         error("Install path cannot be empty")
     end
 
-    -- Create installation directory
     local cmd = require("cmd")
+    local file = require("file")
+    local strings = require("strings")
+    local log = require("log")
+
     cmd.exec("mkdir -p " .. install_path)
 
-    -- Example implementations (choose/modify based on your backend):
+    local ghcup_bin = find_ghcup(cmd, strings)
 
-    -- Example 1: Package manager installation (like npm, pip)
-    local install_cmd = "<BACKEND> install " .. tool .. "@" .. version .. " --target " .. install_path
-    local result = cmd.exec(install_cmd)
+    -- Install the tool
+    log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
+    cmd.exec(ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path)
 
-    if result:match("error") or result:match("failed") then
-        error("Failed to install " .. tool .. "@" .. version .. ": " .. result)
+    -- Post-install: ensure bin/ directory exists
+    -- Some tools install binaries at the top level instead of in bin/
+    local bin_path = file.join_path(install_path, "bin")
+    if not file.exists(bin_path) then
+        log.info("Creating bin directory and moving binaries")
+        cmd.exec("mkdir " .. bin_path)
+        cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
     end
-
-    -- Example 2: Download and extract from URL
-    --[[
-    local http = require("http")
-    local file = require("file")
-
-    -- Construct download URL (adjust based on your backend's URL pattern)
-    local platform = RUNTIME.osType:lower()
-    local arch = RUNTIME.archType
-    local download_url = "https://releases.<BACKEND>.org/" .. tool .. "/" .. version .. "/" .. tool .. "-" .. platform .. "-" .. arch .. ".tar.gz"
-
-    -- Download the tool
-    local temp_file = install_path .. "/" .. tool .. ".tar.gz"
-    local resp, err = http.download({
-        url = download_url,
-        output = temp_file
-    })
-
-    if err then
-        error("Failed to download " .. tool .. "@" .. version .. ": " .. err)
-    end
-
-    -- Extract the archive
-    cmd.exec("cd " .. install_path .. " && tar -xzf " .. temp_file)
-    cmd.exec("rm " .. temp_file)
-
-    -- Set executable permissions
-    cmd.exec("chmod +x " .. install_path .. "/bin/" .. tool)
-    --]]
-
-    -- Example 3: Build from source
-    --[[
-    local git_url = "https://github.com/owner/" .. tool .. ".git"
-
-    -- Clone the repository
-    cmd.exec("git clone " .. git_url .. " " .. install_path .. "/src")
-    cmd.exec("cd " .. install_path .. "/src && git checkout " .. version)
-
-    -- Build the tool (adjust based on build system)
-    local build_result = cmd.exec("cd " .. install_path .. "/src && make install PREFIX=" .. install_path)
-
-    if build_result:match("error") then
-        error("Failed to build " .. tool .. "@" .. version)
-    end
-
-    -- Clean up source
-    cmd.exec("rm -rf " .. install_path .. "/src")
-    --]]
-
-    -- Platform-specific installation logic
-    --[[
-    if RUNTIME.osType == "Darwin" then
-        -- macOS-specific installation
-        local macos_cmd = "<BACKEND> install-macos " .. tool .. "@" .. version .. " " .. install_path
-        cmd.exec(macos_cmd)
-    elseif RUNTIME.osType == "Linux" then
-        -- Linux-specific installation
-        local linux_cmd = "<BACKEND> install-linux " .. tool .. "@" .. version .. " " .. install_path
-        cmd.exec(linux_cmd)
-    elseif RUNTIME.osType == "Windows" then
-        -- Windows-specific installation
-        local windows_cmd = "<BACKEND> install-windows " .. tool .. "@" .. version .. " " .. install_path
-        cmd.exec(windows_cmd)
-    else
-        error("Unsupported platform: " .. RUNTIME.osType)
-    end
-    --]]
 
     return {}
+end
+
+--- Locate ghcup binary: prefer system install, fallback to bootstrap
+--- @param cmd cmd
+--- @param strings strings
+--- @return string path to ghcup binary
+function find_ghcup(cmd, strings) -- luacheck: ignore
+    local ok, result = pcall(cmd.exec, "command -v ghcup")
+    if ok and result and strings.trim_space(result) ~= "" then
+        return strings.trim_space(result)
+    end
+
+    -- Bootstrap ghcup into plugin directory
+    local plugin_dir = RUNTIME.pluginDirPath
+    local file = require("file")
+    local ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+
+    if not file.exists(ghcup_path) then
+        local log = require("log")
+        log.info("Bootstrapping ghcup into " .. plugin_dir)
+        cmd.exec(
+            "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
+                .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
+                .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
+                .. "GHCUP_INSTALL_BASE_PREFIX="
+                .. plugin_dir
+                .. " "
+                .. "GHCUP_USE_XDG_DIRS='' "
+                .. "sh"
+        )
+    end
+
+    return ghcup_path
 end
