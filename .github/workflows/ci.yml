@@ -46,5 +46,8 @@ jobs:
       - run: mise plugin link --force ghcup .
       - run: mise install ghcup:${{ matrix.tool.name }}@latest
       - if: runner.os == 'Windows' && matrix.tool.name == 'hls'
-        run: Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\installs\ghcup-hls
+        run: |
+          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\installs\ghcup-hls
+          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\shims
+          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\bin
       - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }}
