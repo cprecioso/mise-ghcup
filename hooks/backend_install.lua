@@ -63,29 +63,15 @@ function PLUGIN:BackendInstall(ctx)
     return {}
 end
 
---- Locate ghcup binary: prefer system install, fallback to bootstrap.
+--- Locate the local ghcup binary, bootstrapping if needed.
 --- Returns the binary path and an env table to pass to cmd.exec.
---- When using the bootstrapped ghcup, GHCUP_INSTALL_BASE_PREFIX must be
---- set on every invocation so ghcup uses the plugin directory, not defaults
---- like C:\ghcup on Windows.
+--- GHCUP_INSTALL_BASE_PREFIX is always set so ghcup uses the plugin
+--- directory, not defaults like C:\ghcup on Windows or ~/.ghcup on Unix.
 --- @param cmd cmd
 --- @param strings strings
---- @return string ghcup_bin, table|nil ghcup_env
+--- @return string ghcup_bin, table ghcup_env
 function find_ghcup(cmd, strings) -- luacheck: ignore
     local is_windows = RUNTIME.osType == "windows"
-
-    -- Check if ghcup is already on PATH
-    local which_cmd = is_windows and "where.exe ghcup" or "command -v ghcup"
-    local ok, result = pcall(cmd.exec, which_cmd)
-    if ok and result then
-        -- `where.exe` may return multiple lines; take the first
-        local path = strings.split(strings.trim_space(result), "\n")[1]
-        if path and path ~= "" then
-            return strings.trim_space(path), nil
-        end
-    end
-
-    -- Bootstrap ghcup into plugin directory
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
     local ghcup_path
