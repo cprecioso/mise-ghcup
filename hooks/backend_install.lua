@@ -73,11 +73,13 @@ function find_ghcup(cmd) -- luacheck: ignore
     local is_windows = RUNTIME.osType == "windows"
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
-    local ghcup_path
+    local ghcup_dir, ghcup_path
     if is_windows then
-        ghcup_path = file.join_path(plugin_dir, "ghcup", "bin", "ghcup.exe")
+        ghcup_dir = file.join_path(plugin_dir, "ghcup")
+        ghcup_path = file.join_path(ghcup_dir, "bin", "ghcup.exe")
     else
-        ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+        ghcup_dir = file.join_path(plugin_dir, ".ghcup")
+        ghcup_path = file.join_path(ghcup_dir, "bin", "ghcup")
     end
 
     if not file.exists(ghcup_path) then
@@ -85,22 +87,16 @@ function find_ghcup(cmd) -- luacheck: ignore
         log.info("Bootstrapping ghcup into " .. plugin_dir)
 
         if is_windows then
+            local ghcup_bin_dir = file.join_path(ghcup_dir, "bin")
             cmd.exec(
                 "powershell -NoProfile -NonInteractive -Command \""
-                    .. "$env:BOOTSTRAP_HASKELL_MINIMAL = 1; "
-                    .. "$env:BOOTSTRAP_HASKELL_NONINTERACTIVE = 1; "
-                    .. "$env:GHCUP_INSTALL_BASE_PREFIX = '"
-                    .. plugin_dir
-                    .. "'; "
-                    .. "$env:GHCUP_USE_XDG_DIRS = ''; "
-                    .. "Set-ExecutionPolicy Bypass -Scope Process -Force; "
-                    .. "[System.Net.ServicePointManager]::SecurityProtocol = "
-                    .. "[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; "
-                    .. "Invoke-Command -ScriptBlock ([ScriptBlock]::Create("
-                    .. "(Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing)"
-                    .. ")) -ArgumentList $false,$true,$false,$false,$false,$false,$false,'"
-                    .. plugin_dir
-                    .. "','','',''"
+                    .. "New-Item -ItemType Directory -Force -Path '"
+                    .. ghcup_bin_dir
+                    .. "' | Out-Null; "
+                    .. "Invoke-WebRequest -Uri 'https://downloads.haskell.org/~ghcup/x86_64-mingw64-ghcup.exe'"
+                    .. " -OutFile '"
+                    .. ghcup_path
+                    .. "' -UseBasicParsing"
                     .. '"'
             )
         else
