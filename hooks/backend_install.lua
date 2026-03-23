@@ -31,11 +31,11 @@ function PLUGIN:BackendInstall(ctx)
         cmd.exec("mkdir -p " .. install_path)
     end
 
-    local ghcup_bin = find_ghcup(cmd, strings)
+    local ghcup_bin, ghcup_env = find_ghcup(cmd, strings)
 
     -- Install the tool
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
-    cmd.exec(ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path)
+    cmd.exec(ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path, { env = ghcup_env })
 
     -- Post-install: ensure bin/ directory exists
     -- Some tools install binaries at the top level instead of in bin/
@@ -63,10 +63,14 @@ function PLUGIN:BackendInstall(ctx)
     return {}
 end
 
---- Locate ghcup binary: prefer system install, fallback to bootstrap
+--- Locate ghcup binary: prefer system install, fallback to bootstrap.
+--- Returns the binary path and an env table to pass to cmd.exec.
+--- When using the bootstrapped ghcup, GHCUP_INSTALL_BASE_PREFIX must be
+--- set on every invocation so ghcup uses the plugin directory, not defaults
+--- like C:\ghcup on Windows.
 --- @param cmd cmd
 --- @param strings strings
---- @return string path to ghcup binary
+--- @return string ghcup_bin, table|nil ghcup_env
 function find_ghcup(cmd, strings) -- luacheck: ignore
     local is_windows = RUNTIME.osType == "windows"
 
@@ -77,7 +81,7 @@ function find_ghcup(cmd, strings) -- luacheck: ignore
         -- `where.exe` may return multiple lines; take the first
         local path = strings.split(strings.trim_space(result), "\n")[1]
         if path and path ~= "" then
-            return strings.trim_space(path)
+            return strings.trim_space(path), nil
         end
     end
 
@@ -126,5 +130,11 @@ function find_ghcup(cmd, strings) -- luacheck: ignore
         end
     end
 
-    return ghcup_path
+    -- Env vars needed for every invocation of the bootstrapped ghcup
+    local ghcup_env = {
+        GHCUP_INSTALL_BASE_PREFIX = plugin_dir,
+        GHCUP_USE_XDG_DIRS = "",
+    }
+
+    return ghcup_path, ghcup_env
 end
