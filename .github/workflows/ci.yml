@@ -44,6 +44,7 @@ jobs:
           install: false
           experimental: true
       - run: mise plugin link --force ghcup .
+      - run: mise use -g ghcup:${{ matrix.tool.name }}@latest
       - run: mise install ghcup:${{ matrix.tool.name }}@latest
       - if: runner.os == 'Windows'
         run: |
