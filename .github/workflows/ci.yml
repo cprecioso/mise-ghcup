@@ -53,3 +53,5 @@ jobs:
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\bin
       - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }}
         env: { MISE_VERBOSE: 1 }
+      - run: |
+          mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.name }}
