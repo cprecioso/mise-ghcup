@@ -10,9 +10,6 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  MISE_VERBOSE: 1
-
 jobs:
   lint:
     runs-on: ubuntu-latest
