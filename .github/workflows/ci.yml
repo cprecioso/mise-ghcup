@@ -52,3 +52,4 @@ jobs:
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\shims
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\bin
       - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }}
+        env: { MISE_VERBOSE: 1 }
