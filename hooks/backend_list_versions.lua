@@ -60,23 +60,12 @@ function find_ghcup(cmd) -- luacheck: ignore
         log.info("Bootstrapping ghcup into " .. plugin_dir)
 
         if is_windows then
-            cmd.exec(
-                "powershell -NoProfile -NonInteractive -Command \""
-                    .. "$env:BOOTSTRAP_HASKELL_MINIMAL = 1; "
-                    .. "$env:BOOTSTRAP_HASKELL_NONINTERACTIVE = 1; "
-                    .. "$env:GHCUP_INSTALL_BASE_PREFIX = '"
-                    .. plugin_dir
-                    .. "'; "
-                    .. "$env:GHCUP_USE_XDG_DIRS = ''; "
-                    .. "Set-ExecutionPolicy Bypass -Scope Process -Force; "
-                    .. "[System.Net.ServicePointManager]::SecurityProtocol = "
-                    .. "[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; "
-                    .. "Invoke-Command -ScriptBlock ([ScriptBlock]::Create("
-                    .. "(Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing)"
-                    .. ")) -ArgumentList $false,$true,$false,$false,$false,$false,$false,'"
-                    .. plugin_dir
-                    .. "','','',''"
-                    .. '"'
+            local http = require("http")
+            local ghcup_bin_dir = file.join_path(plugin_dir, "ghcup", "bin")
+            cmd.exec('mkdir "' .. ghcup_bin_dir .. '"')
+            http.download_file(
+                { url = "https://downloads.haskell.org/~ghcup/x86_64-mingw64-ghcup.exe" },
+                ghcup_path
             )
         else
             cmd.exec(
