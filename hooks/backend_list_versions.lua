@@ -12,7 +12,7 @@ function PLUGIN:BackendListVersions(ctx)
     local strings = require("strings")
     local semver = require("semver")
 
-    local ghcup_bin = find_ghcup(cmd, strings)
+    local ghcup_bin = find_ghcup(cmd)
 
     -- List available versions
     local output = cmd.exec(ghcup_bin .. " list -t " .. tool .. " -r")
@@ -38,17 +38,10 @@ function PLUGIN:BackendListVersions(ctx)
     return { versions = versions }
 end
 
---- Locate ghcup binary: prefer system install, fallback to bootstrap
+--- Locate or bootstrap internal ghcup binary
 --- @param cmd cmd
---- @param strings strings
 --- @return string path to ghcup binary
-function find_ghcup(cmd, strings) -- luacheck: ignore
-    local ok, result = pcall(cmd.exec, "command -v ghcup")
-    if ok and result and strings.trim_space(result) ~= "" then
-        return strings.trim_space(result)
-    end
-
-    -- Bootstrap ghcup into plugin directory
+function find_ghcup(cmd) -- luacheck: ignore
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
     local ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")

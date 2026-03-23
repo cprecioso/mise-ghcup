@@ -24,6 +24,6 @@ PLUGIN = { -- luacheck: ignore
     -- Optional: Important notes for users
     notes = {
         "Supports ghc, cabal, hls, and stack",
-        "Uses system ghcup if available, otherwise bootstraps automatically",
+        "Automatically bootstraps an internal ghcup installation",
     },
 }
