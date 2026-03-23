@@ -46,11 +46,6 @@ jobs:
       - run: mise plugin link --force ghcup .
       - run: mise use -g ghcup:${{ matrix.tool.name }}@latest
       - run: mise install ghcup:${{ matrix.tool.name }}@latest
-      - if: runner.os == 'Windows'
-        run: |
-          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\installs\ghcup-${{ matrix.tool.name }}
-          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\shims
-          Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\bin
       - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
         env: { MISE_VERBOSE: 1 }
       - run: |
