@@ -27,13 +27,13 @@ jobs:
           - windows-latest
         tool:
           - name: cabal
-            command: cabal --version
+            command: cabal
           - name: ghc
-            command: ghc --version
+            command: ghc
           - name: hls
-            command: haskell-language-server-wrapper --version
+            command: haskell-language-server-wrapper
           - name: stack
-            command: stack --version
+            command: stack
       fail-fast: false
     runs-on: ${{ matrix.os }}
     needs: [lint]
@@ -51,7 +51,7 @@ jobs:
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\installs\ghcup-${{ matrix.tool.name }}
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\shims
           Get-ChildItem -Recurse -Path $Env:USERPROFILE\AppData\Local\mise\bin
-      - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }}
+      - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
         env: { MISE_VERBOSE: 1 }
       - run: |
-          mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.name }}
+          mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
