@@ -24,7 +24,7 @@ function PLUGIN:BackendInstall(ctx)
     local is_windows = RUNTIME.osType == "windows"
 
     if is_windows then
-        cmd.exec('mkdir "' .. install_path .. '"')
+        cmd.exec("mkdir " .. install_path)
     else
         cmd.exec("mkdir -p " .. install_path)
     end
@@ -41,8 +41,8 @@ function PLUGIN:BackendInstall(ctx)
     if not file.exists(bin_path) then
         log.info("Creating bin directory and moving binaries")
         if is_windows then
-            cmd.exec('mkdir "' .. bin_path .. '"')
-            cmd.exec('move /Y "' .. install_path .. '\\*" "' .. bin_path .. '\\"')
+            cmd.exec("mkdir " .. bin_path)
+            cmd.exec("move /Y " .. install_path .. "\\* " .. bin_path .. "\\")
         else
             cmd.exec("mkdir " .. bin_path)
             cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
@@ -76,7 +76,7 @@ function find_ghcup(cmd) -- luacheck: ignore
         if is_windows then
             local http = require("http")
             local ghcup_bin_dir = file.join_path(plugin_dir, "ghcup", "bin")
-            cmd.exec('mkdir "' .. ghcup_bin_dir .. '"')
+            cmd.exec("mkdir " .. ghcup_bin_dir)
             http.download_file(
                 { url = "https://downloads.haskell.org/~ghcup/x86_64-mingw64-ghcup.exe" },
                 ghcup_path

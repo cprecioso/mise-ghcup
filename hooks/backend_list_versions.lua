@@ -62,7 +62,7 @@ function find_ghcup(cmd) -- luacheck: ignore
         if is_windows then
             local http = require("http")
             local ghcup_bin_dir = file.join_path(plugin_dir, "ghcup", "bin")
-            cmd.exec('mkdir "' .. ghcup_bin_dir .. '"')
+            cmd.exec("mkdir " .. ghcup_bin_dir)
             http.download_file(
                 { url = "https://downloads.haskell.org/~ghcup/x86_64-mingw64-ghcup.exe" },
                 ghcup_path
