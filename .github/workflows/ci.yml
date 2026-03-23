@@ -24,6 +24,7 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
+          - windows-latest
         tool:
           - name: cabal
             command: cabal --version
