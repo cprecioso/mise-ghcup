@@ -21,8 +21,15 @@ function PLUGIN:BackendInstall(ctx)
     local file = require("file")
     local strings = require("strings")
     local log = require("log")
+    local is_windows = RUNTIME.osType == "windows"
 
-    cmd.exec("mkdir -p " .. install_path)
+    if is_windows then
+        cmd.exec("powershell -NoProfile -NonInteractive -Command \"New-Item -ItemType Directory -Force -Path '"
+            .. install_path
+            .. "'\"")
+    else
+        cmd.exec("mkdir -p " .. install_path)
+    end
 
     local ghcup_bin = find_ghcup(cmd, strings)
 
@@ -35,8 +42,22 @@ function PLUGIN:BackendInstall(ctx)
     local bin_path = file.join_path(install_path, "bin")
     if not file.exists(bin_path) then
         log.info("Creating bin directory and moving binaries")
-        cmd.exec("mkdir " .. bin_path)
-        cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
+        if is_windows then
+            cmd.exec("powershell -NoProfile -NonInteractive -Command \""
+                .. "New-Item -ItemType Directory -Force -Path '"
+                .. bin_path
+                .. "'; "
+                .. "Get-ChildItem -Path '"
+                .. install_path
+                .. "' -File "
+                .. "| Move-Item -Destination '"
+                .. bin_path
+                .. "'"
+                .. '"')
+        else
+            cmd.exec("mkdir " .. bin_path)
+            cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
+        end
     end
 
     return {}
@@ -47,29 +68,62 @@ end
 --- @param strings strings
 --- @return string path to ghcup binary
 function find_ghcup(cmd, strings) -- luacheck: ignore
-    local ok, result = pcall(cmd.exec, "command -v ghcup")
-    if ok and result and strings.trim_space(result) ~= "" then
-        return strings.trim_space(result)
+    local is_windows = RUNTIME.osType == "windows"
+
+    -- Check if ghcup is already on PATH
+    local which_cmd = is_windows and "where.exe ghcup" or "command -v ghcup"
+    local ok, result = pcall(cmd.exec, which_cmd)
+    if ok and result then
+        -- `where.exe` may return multiple lines; take the first
+        local path = strings.split(strings.trim_space(result), "\n")[1]
+        if path and path ~= "" then
+            return strings.trim_space(path)
+        end
     end
 
     -- Bootstrap ghcup into plugin directory
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
-    local ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+    local ghcup_path
+    if is_windows then
+        ghcup_path = file.join_path(plugin_dir, "ghcup", "bin", "ghcup.exe")
+    else
+        ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+    end
 
     if not file.exists(ghcup_path) then
         local log = require("log")
         log.info("Bootstrapping ghcup into " .. plugin_dir)
-        cmd.exec(
-            "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
-                .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
-                .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
-                .. "GHCUP_INSTALL_BASE_PREFIX="
-                .. plugin_dir
-                .. " "
-                .. "GHCUP_USE_XDG_DIRS='' "
-                .. "sh"
-        )
+
+        if is_windows then
+            cmd.exec(
+                "powershell -NoProfile -NonInteractive -Command \""
+                    .. "$env:BOOTSTRAP_HASKELL_MINIMAL = 1; "
+                    .. "$env:BOOTSTRAP_HASKELL_NONINTERACTIVE = 1; "
+                    .. "$env:GHCUP_INSTALL_BASE_PREFIX = '"
+                    .. plugin_dir
+                    .. "'; "
+                    .. "$env:GHCUP_USE_XDG_DIRS = ''; "
+                    .. "Set-ExecutionPolicy Bypass -Scope Process -Force; "
+                    .. "[System.Net.ServicePointManager]::SecurityProtocol = "
+                    .. "[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; "
+                    .. "Invoke-Command -ScriptBlock ([ScriptBlock]::Create("
+                    .. "(Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing)"
+                    .. ")) -ArgumentList $false,$false,$false,$false,$false,$false,$false,'','','',''"
+                    .. '"'
+            )
+        else
+            cmd.exec(
+                "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
+                    .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
+                    .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
+                    .. "GHCUP_INSTALL_BASE_PREFIX="
+                    .. plugin_dir
+                    .. " "
+                    .. "GHCUP_USE_XDG_DIRS='' "
+                    .. "sh"
+            )
+        end
     end
 
     return ghcup_path
