@@ -12,7 +12,7 @@ function PLUGIN:BackendListVersions(ctx)
     local strings = require("strings")
     local semver = require("semver")
 
-    local ghcup_bin, ghcup_env = find_ghcup(cmd, strings)
+    local ghcup_bin, ghcup_env = find_ghcup(cmd)
 
     -- List available versions
     local output = cmd.exec(ghcup_bin .. " list -t " .. tool .. " -r", { env = ghcup_env })
@@ -43,9 +43,8 @@ end
 --- GHCUP_INSTALL_BASE_PREFIX is always set so ghcup uses the plugin
 --- directory, not defaults like C:\ghcup on Windows or ~/.ghcup on Unix.
 --- @param cmd cmd
---- @param strings strings
 --- @return string ghcup_bin, table ghcup_env
-function find_ghcup(cmd, strings) -- luacheck: ignore
+function find_ghcup(cmd) -- luacheck: ignore
     local is_windows = RUNTIME.osType == "windows"
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
