@@ -113,7 +113,9 @@ function find_ghcup(cmd, strings) -- luacheck: ignore
                     .. "[System.Net.ServicePointManager]::SecurityProtocol -bor 3072; "
                     .. "Invoke-Command -ScriptBlock ([ScriptBlock]::Create("
                     .. "(Invoke-WebRequest https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1 -UseBasicParsing)"
-                    .. ")) -ArgumentList $false,$false,$false,$false,$false,$false,$false,'','','',''"
+                    .. ")) -ArgumentList $false,$true,$false,$false,$false,$false,$false,'"
+                    .. plugin_dir
+                    .. "','','',''"
                     .. '"'
             )
         else
