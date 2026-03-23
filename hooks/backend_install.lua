@@ -21,49 +21,89 @@ function PLUGIN:BackendInstall(ctx)
     local file = require("file")
     local strings = require("strings")
     local log = require("log")
+    local is_windows = RUNTIME.osType == "windows"
 
-    cmd.exec("mkdir -p " .. install_path)
+    if is_windows then
+        if not file.exists(install_path) then
+            cmd.exec("mkdir " .. install_path)
+        end
+    else
+        cmd.exec("mkdir -p " .. install_path)
+    end
 
-    local ghcup_bin = find_ghcup(cmd)
+    local ghcup_bin, ghcup_env = find_ghcup(cmd)
 
     -- Install the tool
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
-    cmd.exec(ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path)
+    cmd.exec(ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path, { env = ghcup_env })
 
     -- Post-install: ensure bin/ directory exists
     -- Some tools install binaries at the top level instead of in bin/
     local bin_path = file.join_path(install_path, "bin")
     if not file.exists(bin_path) then
         log.info("Creating bin directory and moving binaries")
-        cmd.exec("mkdir " .. bin_path)
-        cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
+        if is_windows then
+            cmd.exec("mkdir " .. bin_path)
+            cmd.exec("move /Y " .. install_path .. "\\* " .. bin_path .. "\\")
+        else
+            cmd.exec("mkdir " .. bin_path)
+            cmd.exec("find " .. install_path .. " -maxdepth 1 -type f -exec mv {} " .. bin_path .. "/ \\;")
+        end
     end
 
     return {}
 end
 
---- Locate or bootstrap internal ghcup binary
+--- Locate the local ghcup binary, bootstrapping if needed.
+--- Returns the binary path and an env table to pass to cmd.exec.
+--- GHCUP_INSTALL_BASE_PREFIX is always set so ghcup uses the plugin
+--- directory, not defaults like C:\ghcup on Windows or ~/.ghcup on Unix.
 --- @param cmd cmd
---- @return string path to ghcup binary
+--- @return string ghcup_bin, table ghcup_env
 function find_ghcup(cmd) -- luacheck: ignore
+    local is_windows = RUNTIME.osType == "windows"
     local plugin_dir = RUNTIME.pluginDirPath
     local file = require("file")
-    local ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+    local ghcup_path
+    if is_windows then
+        ghcup_path = file.join_path(plugin_dir, "ghcup", "bin", "ghcup.exe")
+    else
+        ghcup_path = file.join_path(plugin_dir, ".ghcup", "bin", "ghcup")
+    end
 
     if not file.exists(ghcup_path) then
         local log = require("log")
         log.info("Bootstrapping ghcup into " .. plugin_dir)
-        cmd.exec(
-            "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
-                .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
-                .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
-                .. "GHCUP_INSTALL_BASE_PREFIX="
-                .. plugin_dir
-                .. " "
-                .. "GHCUP_USE_XDG_DIRS='' "
-                .. "sh"
-        )
+
+        if is_windows then
+            local http = require("http")
+            local ghcup_bin_dir = file.join_path(plugin_dir, "ghcup", "bin")
+            if not file.exists(ghcup_bin_dir) then
+                cmd.exec("mkdir " .. ghcup_bin_dir)
+            end
+            http.download_file(
+                { url = "https://downloads.haskell.org/~ghcup/x86_64-mingw64-ghcup.exe" },
+                ghcup_path
+            )
+        else
+            cmd.exec(
+                "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | "
+                    .. "BOOTSTRAP_HASKELL_MINIMAL=1 "
+                    .. "BOOTSTRAP_HASKELL_NONINTERACTIVE=1 "
+                    .. "GHCUP_INSTALL_BASE_PREFIX="
+                    .. plugin_dir
+                    .. " "
+                    .. "GHCUP_USE_XDG_DIRS='' "
+                    .. "sh"
+            )
+        end
     end
 
-    return ghcup_path
+    -- Env vars needed for every invocation of the bootstrapped ghcup
+    local ghcup_env = {
+        GHCUP_INSTALL_BASE_PREFIX = plugin_dir,
+        GHCUP_USE_XDG_DIRS = "",
+    }
+
+    return ghcup_path, ghcup_env
 end
