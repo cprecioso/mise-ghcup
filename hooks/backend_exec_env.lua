@@ -7,7 +7,11 @@ function PLUGIN:BackendExecEnv(ctx)
     local file = require("file")
 
     local bin_path
-    if ctx.tool == "cabal" or ctx.tool == "stack" then
+    if
+        ctx.tool == "cabal"
+        or ctx.tool == "stack"
+        or (ctx.tool == "hls" and RUNTIME.osType == "windows")
+    then
         bin_path = install_path
     else
         bin_path = file.join_path(install_path, "bin")
