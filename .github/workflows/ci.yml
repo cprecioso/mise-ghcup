@@ -55,8 +55,8 @@ jobs:
             bin = "ghcup"
 
       - run: mise plugin link --force ghcup ./plugin
-      - run: mise use -g ghcup:${{ matrix.tool.name }}@latest
       - run: mise --debug install ghcup:${{ matrix.tool.name }}@latest
+      - run: mise use -g ghcup:${{ matrix.tool.name }}@latest
       - run: mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
       - run: |
           mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
