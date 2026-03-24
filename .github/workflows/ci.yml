@@ -38,7 +38,9 @@ jobs:
           - name: stack
             command: stack
 
+    name: Test (${{ matrix.os }}, ${{ matrix.tool.name }})
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v6
         with:
