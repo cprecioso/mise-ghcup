@@ -13,8 +13,9 @@ function M.find_ghcup(cmd)
     local file = require("file")
     local fs = require("fs")
 
-    local ghcup_path = file.join_path(plugin_dir, fs.hidden_dir("ghcup"))
     local ghcup_installer_path = file.join_path(plugin_dir, "ghcup-installer")
+
+    local ghcup_path = file.join_path(plugin_dir, fs.hidden_dir("ghcup"))
     local ghcup_bin_path = file.join_path(ghcup_path, "bin", fs.exe_name("ghcup"))
 
     if not file.exists(ghcup_bin_path) then

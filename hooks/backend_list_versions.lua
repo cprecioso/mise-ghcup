@@ -11,9 +11,9 @@ function PLUGIN:BackendListVersions(ctx)
     local cmd = require("cmd")
     local strings = require("strings")
     local semver = require("semver")
-    local find_ghcup = require("ghcup")
+    local ghcup = require("ghcup")
 
-    local ghcup_bin, ghcup_env = find_ghcup.find_ghcup(cmd)
+    local ghcup_bin, ghcup_env = ghcup.find_ghcup(cmd)
 
     -- List available versions
     local output = cmd.exec(ghcup_bin .. " list -t " .. tool .. " -r", { env = ghcup_env })
