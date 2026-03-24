@@ -19,7 +19,10 @@ jobs:
       - run: mise run lint
 
   test:
+    needs: [lint]
+
     strategy:
+      fail-fast: false
       matrix:
         os:
           - macos-latest
@@ -34,9 +37,8 @@ jobs:
             command: haskell-language-server-wrapper
           - name: stack
             command: stack
-      fail-fast: false
+
     runs-on: ${{ matrix.os }}
-    needs: [lint]
     steps:
       - uses: actions/checkout@v6
         with:
@@ -52,8 +54,7 @@ jobs:
 
       - run: mise plugin link --force ghcup ./plugin
       - run: mise use -g ghcup:${{ matrix.tool.name }}@latest
-      - run: mise install ghcup:${{ matrix.tool.name }}@latest
-      - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
-        env: { MISE_VERBOSE: 1 }
+      - run: mise --debug install ghcup:${{ matrix.tool.name }}@latest
+      - run: mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
       - run: |
-          mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
+          mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
