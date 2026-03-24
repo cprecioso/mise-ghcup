@@ -11,9 +11,15 @@ function PLUGIN:BackendListVersions(ctx)
     local cmd = require("cmd")
     local strings = require("strings")
     local semver = require("semver")
+    local ghcup = require("ghcup")
+
+    local ghcup_bin, ghcup_env = ghcup.find_ghcup()
 
     -- List available versions
-    local output = cmd.exec("ghcup list -t " .. tool .. " -r")
+    local output = cmd.exec(
+        ghcup_bin .. " list -t " .. tool .. " -r",
+        { env = ghcup_env }
+    )
 
     local versions = {}
     for _, line in ipairs(strings.split(output, "\n")) do

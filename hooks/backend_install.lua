@@ -20,12 +20,18 @@ function PLUGIN:BackendInstall(ctx)
     local cmd = require("cmd")
     local log = require("log")
     local fs = require("fs")
+    local ghcup = require("ghcup")
+
+    local ghcup_bin, ghcup_env = ghcup.find_ghcup()
 
     -- Install the tool
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
 
     fs.mkdir_p(cmd, install_path)
-    cmd.exec("ghcup install " .. tool .. " " .. version .. " -i " .. install_path)
+    cmd.exec(
+        ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path,
+        { env = ghcup_env }
+    )
 
     return {}
 end
