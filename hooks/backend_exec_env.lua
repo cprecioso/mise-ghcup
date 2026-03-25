@@ -5,16 +5,23 @@
 function PLUGIN:BackendExecEnv(ctx)
     local install_path = ctx.install_path
     local file = require("file")
+    local tools = require("tools")
 
+    local bin_search_paths = {
+        file.join_path(install_path, "bin"),
+        install_path
+    }
+
+    local binary_name = tools[ctx.tool].binary_name
     local bin_path
-    if
-        ctx.tool == "cabal"
-        or ctx.tool == "stack"
-        or (ctx.tool == "hls" and RUNTIME.osType == "windows")
-    then
-        bin_path = install_path
-    else
-        bin_path = file.join_path(install_path, "bin")
+    for _, path in ipairs(bin_search_paths) do
+        if
+            file.exists(file.join_path(path, binary_name))
+            or file.exists(file.join_path(path, binary_name .. ".exe"))
+        then
+            bin_path = path
+            break
+        end
     end
 
     return {
