@@ -3,9 +3,11 @@
 --- @param ctx BackendListVersionsCtx
 --- @return BackendListVersionsResult
 function PLUGIN:BackendListVersions(ctx)
+    local tools = require("tools")
+
     local tool = ctx.tool
-    if not tool or tool == "" then
-        error("Tool name cannot be empty")
+    if not tools[tool] then
+        error("Tool '" .. tool .. "' not recognized")
     end
 
     local cmd = require("cmd")

@@ -3,18 +3,14 @@
 --- @param ctx BackendInstallCtx
 --- @return BackendInstallResult
 function PLUGIN:BackendInstall(ctx)
+    local tools = require("tools")
+
     local tool = ctx.tool
     local version = ctx.version
     local install_path = ctx.install_path
 
-    if not tool or tool == "" then
-        error("Tool name cannot be empty")
-    end
-    if not version or version == "" then
-        error("Version cannot be empty")
-    end
-    if not install_path or install_path == "" then
-        error("Install path cannot be empty")
+    if not tools[tool] then
+        error("Tool '" .. tool .. "' not recognized")
     end
 
     local cmd = require("cmd")
