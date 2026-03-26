@@ -56,8 +56,13 @@ local function ensure_installed()
 	-- Get the latest release version
 	local response = http.get({ url = GITHUB_LATEST_URL })
 	local release = json.decode(response.body)
+	local strings = require("strings")
+	local tag = release.tag_name
+	if strings.has_prefix(tag, "v") then
+		tag = tag:sub(2)
+	end
 	local semver = require("semver")
-	local version_parts = semver.parse(release.tag_name)
+	local version_parts = semver.parse(tag)
 	local version = table.concat(version_parts, ".")
 
 	-- Build the download URL
