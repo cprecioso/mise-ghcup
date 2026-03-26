@@ -2,79 +2,111 @@ local M = {}
 
 local is_windows = RUNTIME.osType == "windows"
 
-local BOOTSTRAP_URL_UNIX = "https://www.haskell.org/ghcup/sh/bootstrap-haskell"
-local BOOTSTRAP_URL_WINDOWS = "https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1"
+local GITHUB_LATEST_URL = "https://api.github.com/repos/haskell/ghcup-hs/releases/latest"
+
+--- Map RUNTIME arch/os values to GHCup's release asset naming.
+--- @return string
+local function get_asset_name()
+	local arch_map = { amd64 = "x86_64", arm64 = "aarch64", ["386"] = "i386" }
+	local arch = arch_map[RUNTIME.archType] or RUNTIME.archType
+
+	local platform
+	if RUNTIME.osType == "darwin" then
+		platform = "apple-darwin"
+	elseif RUNTIME.osType == "windows" then
+		platform = "mingw64"
+	else
+		platform = RUNTIME.osType
+	end
+
+	return arch .. "-" .. platform .. "-ghcup"
+end
 
 --- Get the path where the ghcup binary should live.
 --- @return string
 local function get_binary_path()
-    local file = require("file")
-    local fs = require("fs")
+	local file = require("file")
+	local fs = require("fs")
 
-    return file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin", fs.exe_name("ghcup"))
+	return file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin", fs.exe_name("ghcup"))
 end
 
 local ghcup_env = {
-    GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
-    GHCUP_USE_XDG_DIRS = "",
-    BOOTSTRAP_HASKELL_NONINTERACTIVE = "1",
-    BOOTSTRAP_HASKELL_MINIMAL = "1",
+	GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
+	GHCUP_USE_XDG_DIRS = "",
 }
 
---- Bootstrap ghcup if not already installed.
+--- Download ghcup binary from GitHub releases if not already installed.
 --- @return string binary_path
 local function ensure_installed()
-    local cmd = require("cmd")
-    local file = require("file")
-    local http = require("http")
-    local log = require("log")
+	local cmd = require("cmd")
+	local file = require("file")
+	local fs = require("fs")
+	local http = require("http")
+	local json = require("json")
+	local log = require("log")
 
-    local binary_path = get_binary_path()
-    if file.exists(binary_path) then
-        return binary_path
-    end
+	local binary_path = get_binary_path()
+	if file.exists(binary_path) then
+		return binary_path
+	end
 
-    log.info("Bootstrapping ghcup...")
+	log.info("Downloading ghcup from GitHub releases...")
 
-    if is_windows then
-        local script_path = file.join_path(RUNTIME.pluginDirPath, "bootstrap-haskell.ps1")
-        http.download_file({ url = BOOTSTRAP_URL_WINDOWS }, script_path)
-        cmd.exec(
-            "pwsh -NoProfile -ExecutionPolicy Bypass -File "
-                .. script_path
-                .. " -Minimal -InstallDir "
-                .. RUNTIME.pluginDirPath,
-            { env = ghcup_env }
-        )
-    else
-        local script_path = file.join_path(RUNTIME.pluginDirPath, "bootstrap-haskell.sh")
-        http.download_file({ url = BOOTSTRAP_URL_UNIX }, script_path)
-        cmd.exec("sh " .. script_path, { env = ghcup_env })
-    end
+	-- Get the latest release version
+	local response = http.get({ url = GITHUB_LATEST_URL })
+	local release = json.decode(response.body)
+	local version = release.tag_name:sub(2) -- strip leading "v"
 
-    if not file.exists(binary_path) then
-        error("ghcup bootstrap failed: binary not found at " .. binary_path)
-    end
+	-- Build the download URL
+	local asset_name = get_asset_name()
+	if is_windows then
+		asset_name = asset_name .. "-" .. version .. ".exe"
+	else
+		asset_name = asset_name .. "-" .. version
+	end
+	local download_url = "https://github.com/haskell/ghcup-hs/releases/download/"
+		.. release.tag_name
+		.. "/"
+		.. asset_name
 
-    return binary_path
+	log.info("Downloading " .. download_url)
+
+	-- Ensure the bin directory exists
+	local bin_dir = file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin")
+	fs.mkdir_p(cmd, bin_dir)
+
+	-- Download the binary
+	http.download_file({ url = download_url }, binary_path)
+
+	-- Make executable on Unix
+	if not is_windows then
+		cmd.exec("chmod +x " .. binary_path)
+	end
+
+	if not file.exists(binary_path) then
+		error("ghcup download failed: binary not found at " .. binary_path)
+	end
+
+	return binary_path
 end
 
 --- Execute a ghcup command.
 --- @param args string
 --- @return string output
 function M.call(args)
-    local cmd = require("cmd")
+	local cmd = require("cmd")
 
-    local binary_path = ensure_installed()
+	local binary_path = ensure_installed()
 
-    return cmd.exec(binary_path .. " " .. args, {
-        env = ghcup_env,
-    })
+	return cmd.exec(binary_path .. " " .. args, {
+		env = ghcup_env,
+	})
 end
 
---- Ensures that ghcup is installed, bootstrapping if needed.
+--- Ensures that ghcup is installed, downloading if needed.
 function M.assert_installed()
-    ensure_installed()
+	ensure_installed()
 end
 
 return M

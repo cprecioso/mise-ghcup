@@ -14,9 +14,7 @@ function PLUGIN:BackendListVersions(ctx)
     ghcup.assert_installed()
 
     -- List available versions
-    local output = ghcup.call(
-        "list -t " .. tool_data.ghcup_id .. " -r"
-    )
+    local output = ghcup.call("list -t " .. tool_data.ghcup_id .. " -r")
 
     local versions = {}
     for _, line in ipairs(strings.split(output, "\n")) do
