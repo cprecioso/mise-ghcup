@@ -7,12 +7,14 @@ function PLUGIN:BackendExecEnv(ctx)
     local file = require("file")
     local tools = require("tools")
 
+    local tool_data = tools.assert_valid_tool(ctx.tool)
+
     local bin_search_paths = {
         file.join_path(install_path, "bin"),
         install_path
     }
 
-    local binary_name = tools[ctx.tool].binary_name
+    local binary_name = tool_data.binary_name
     local bin_path
     for _, path in ipairs(bin_search_paths) do
         if

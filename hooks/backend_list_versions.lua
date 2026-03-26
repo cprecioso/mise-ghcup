@@ -3,24 +3,19 @@
 --- @param ctx BackendListVersionsCtx
 --- @return BackendListVersionsResult
 function PLUGIN:BackendListVersions(ctx)
+    local ghcup = require("ghcup")
+    local semver = require("semver")
+    local strings = require("strings")
     local tools = require("tools")
 
     local tool = ctx.tool
-    if not tools[tool] then
-        error("Tool '" .. tool .. "' not recognized")
-    end
 
-    local cmd = require("cmd")
-    local strings = require("strings")
-    local semver = require("semver")
-    local ghcup = require("ghcup")
-
-    local ghcup_bin, ghcup_env = ghcup.find_ghcup()
+    local tool_data = tools.assert_valid_tool(tool)
+    ghcup.assert_installed()
 
     -- List available versions
-    local output = cmd.exec(
-        ghcup_bin .. " list -t " .. tool .. " -r",
-        { env = ghcup_env }
+    local output = ghcup.call(
+        "list -t " .. tool_data.ghcup_id .. " -r"
     )
 
     local versions = {}

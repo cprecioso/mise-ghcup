@@ -3,30 +3,25 @@
 --- @param ctx BackendInstallCtx
 --- @return BackendInstallResult
 function PLUGIN:BackendInstall(ctx)
+    local cmd = require("cmd")
+    local fs = require("fs")
+    local ghcup = require("ghcup")
+    local log = require("log")
     local tools = require("tools")
 
     local tool = ctx.tool
     local version = ctx.version
     local install_path = ctx.install_path
 
-    if not tools[tool] then
-        error("Tool '" .. tool .. "' not recognized")
-    end
-
-    local cmd = require("cmd")
-    local log = require("log")
-    local fs = require("fs")
-    local ghcup = require("ghcup")
-
-    local ghcup_bin, ghcup_env = ghcup.find_ghcup()
+    local tool_data = tools.assert_valid_tool(tool)
+    ghcup.assert_installed()
 
     -- Install the tool
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
 
     fs.mkdir_p(cmd, install_path)
-    cmd.exec(
-        ghcup_bin .. " install " .. tool .. " " .. version .. " -i " .. install_path,
-        { env = ghcup_env }
+    ghcup.call(
+        "install " .. tool_data.ghcup_id .. " " .. version .. " -i " .. install_path
     )
 
     return {}
