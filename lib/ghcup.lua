@@ -36,9 +36,11 @@ local ghcup_env = {
 	GHCUP_USE_XDG_DIRS = "",
 }
 
---- Download ghcup binary from GitHub releases if not already installed.
---- @return string binary_path
-local function ensure_installed()
+--- Download ghcup binary from GitHub releases if not already installed,
+--- then execute a ghcup command.
+--- @param args string
+--- @return string output
+function M.call(args)
 	local cmd = require("cmd")
 	local file = require("file")
 	local fs = require("fs")
@@ -47,64 +49,54 @@ local function ensure_installed()
 	local log = require("log")
 
 	local binary_path = get_binary_path()
-	if file.exists(binary_path) then
-		return binary_path
-	end
-
-	log.info("Downloading ghcup from GitHub releases...")
-
-	-- Get the latest release version
-	local response = http.get({ url = GITHUB_LATEST_URL })
-	local release = json.decode(response.body)
-	local strings = require("strings")
-	local tag = release.tag_name
-	if strings.has_prefix(tag, "v") then
-		tag = tag:sub(2)
-	end
-	local semver = require("semver")
-	local version_parts = semver.parse(tag)
-	local version = table.concat(version_parts, ".")
-
-	-- Build the download URL
-	local asset_name = get_asset_name()
-	if is_windows then
-		asset_name = asset_name .. "-" .. version .. ".exe"
-	else
-		asset_name = asset_name .. "-" .. version
-	end
-	local download_url = "https://github.com/haskell/ghcup-hs/releases/download/"
-		.. release.tag_name
-		.. "/"
-		.. asset_name
-
-	log.info("Downloading " .. download_url)
-
-	-- Ensure the bin directory exists
-	local bin_dir = file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin")
-	fs.mkdir_p(cmd, bin_dir)
-
-	-- Download the binary
-	http.download_file({ url = download_url }, binary_path)
-
-	-- Make executable on Unix
-	if not is_windows then
-		cmd.exec("chmod +x " .. binary_path)
-	end
-
 	if not file.exists(binary_path) then
-		error("ghcup download failed: binary not found at " .. binary_path)
+		log.info("Downloading ghcup from GitHub releases...")
+
+		-- Get the latest release version
+		local request = { url = GITHUB_LATEST_URL }
+		local token = os.getenv("GITHUB_TOKEN")
+		if token then
+			request.headers = { ["Authorization"] = "token " .. token }
+		end
+		local response = http.get(request)
+		local release = json.decode(response.body)
+		if not release.tag_name then
+			error("Failed to fetch ghcup release info from GitHub API (possible rate limit). Response: " .. response.body)
+		end
+		local semver = require("semver")
+		local version_parts = semver.parse(release.tag_name)
+		local version = table.concat(version_parts, ".")
+
+		-- Build the download URL
+		local asset_name = get_asset_name()
+		if is_windows then
+			asset_name = asset_name .. "-" .. version .. ".exe"
+		else
+			asset_name = asset_name .. "-" .. version
+		end
+		local download_url = "https://github.com/haskell/ghcup-hs/releases/download/"
+			.. release.tag_name
+			.. "/"
+			.. asset_name
+
+		log.info("Downloading " .. download_url)
+
+		-- Ensure the bin directory exists
+		local bin_dir = file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin")
+		fs.mkdir_p(cmd, bin_dir)
+
+		-- Download the binary
+		http.download_file({ url = download_url }, binary_path)
+
+		-- Make executable on Unix
+		if not is_windows then
+			cmd.exec("chmod +x " .. binary_path)
+		end
+
+		if not file.exists(binary_path) then
+			error("ghcup download failed: binary not found at " .. binary_path)
+		end
 	end
-
-	return binary_path
-end
-
---- Execute a ghcup command.
---- @param args string
---- @return string output
-function M.call(args)
-	local cmd = require("cmd")
-
-	local binary_path = ensure_installed()
 
 	return cmd.exec(binary_path .. " " .. args, {
 		env = ghcup_env,
