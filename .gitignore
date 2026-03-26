@@ -1,2 +1,2 @@
-# Bootstrapped ghcup installation
-.ghcup/
+# Internal ghcup installation
+/.ghcup/

@@ -1,0 +1,6 @@
+[tools."github:haskell/ghcup-hs"]
+version = "latest"
+bin = "ghcup"
+
+[settings]
+experimental = true
