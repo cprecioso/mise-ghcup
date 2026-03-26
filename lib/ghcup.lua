@@ -16,7 +16,7 @@ end
 
 local ghcup_env = {
     GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
-    GHCUP_USE_XDG_DIRS = "0",
+    GHCUP_USE_XDG_DIRS = "",
     BOOTSTRAP_HASKELL_NONINTERACTIVE = "1",
     BOOTSTRAP_HASKELL_MINIMAL = "1",
 }
@@ -36,11 +36,6 @@ local function ensure_installed()
 
     log.info("Bootstrapping ghcup...")
 
-    local ls_cmd = is_windows and "dir /s " or "ls -laRL "
-
-    log.info("Plugin dir before bootstrap:")
-    log.info(cmd.exec(ls_cmd .. RUNTIME.pluginDirPath))
-
     if is_windows then
         local script_path = file.join_path(RUNTIME.pluginDirPath, "bootstrap-haskell.ps1")
         http.download_file({ url = BOOTSTRAP_URL_WINDOWS }, script_path)
@@ -56,9 +51,6 @@ local function ensure_installed()
         http.download_file({ url = BOOTSTRAP_URL_UNIX }, script_path)
         cmd.exec("sh " .. script_path, { env = ghcup_env })
     end
-
-    log.info("Plugin dir after bootstrap:")
-    log.info(cmd.exec(ls_cmd .. RUNTIME.pluginDirPath))
 
     if not file.exists(binary_path) then
         error("ghcup bootstrap failed: binary not found at " .. binary_path)
