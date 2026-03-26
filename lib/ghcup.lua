@@ -2,7 +2,7 @@ local M = {}
 
 local is_windows = RUNTIME.osType == "windows"
 
-local BOOTSTRAP_URL_UNIX = "https://get-ghcup.haskell.org"
+local BOOTSTRAP_URL_UNIX = "https://www.haskell.org/ghcup/sh/bootstrap-haskell"
 local BOOTSTRAP_URL_WINDOWS = "https://www.haskell.org/ghcup/sh/bootstrap-haskell.ps1"
 
 --- Get the path where the ghcup binary should live.
@@ -40,7 +40,7 @@ local function ensure_installed()
         local script_path = file.join_path(RUNTIME.pluginDirPath, "bootstrap-haskell.ps1")
         http.download_file({ url = BOOTSTRAP_URL_WINDOWS }, script_path)
         cmd.exec(
-            "powershell -ExecutionPolicy Bypass -File "
+            "pwsh -NoProfile -ExecutionPolicy Bypass -File "
                 .. script_path
                 .. " -Minimal -InstallDir "
                 .. RUNTIME.pluginDirPath,
