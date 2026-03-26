@@ -1,2 +1,3 @@
 # Bootstrapped ghcup installation
-.ghcup/
+/.ghcup/
+/bootstrap-haskell*
