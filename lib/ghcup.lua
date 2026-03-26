@@ -36,7 +36,7 @@ local function ensure_installed()
 
     log.info("Bootstrapping ghcup...")
 
-    local ls_cmd = is_windows and "dir " or "ls -la "
+    local ls_cmd = is_windows and "dir /s " or "ls -laRL "
 
     log.info("Plugin dir before bootstrap:")
     log.info(cmd.exec(ls_cmd .. RUNTIME.pluginDirPath))
