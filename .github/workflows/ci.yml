@@ -49,10 +49,6 @@ jobs:
       - uses: jdx/mise-action@v4
         with:
           experimental: true
-          mise_toml: |
-            [tools."github:haskell/ghcup-hs"]
-            version = "latest"
-            bin = "ghcup"
 
       - run: mise plugin link --force ghcup ./plugin
       - run: mise --debug use -g ghcup:${{ matrix.tool.name }}@latest
