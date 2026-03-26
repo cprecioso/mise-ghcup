@@ -56,7 +56,9 @@ local function ensure_installed()
 	-- Get the latest release version
 	local response = http.get({ url = GITHUB_LATEST_URL })
 	local release = json.decode(response.body)
-	local version = release.tag_name:sub(2) -- strip leading "v"
+	local semver = require("semver")
+	local version_parts = semver.parse(release.tag_name)
+	local version = table.concat(version_parts, ".")
 
 	-- Build the download URL
 	local asset_name = get_asset_name()
@@ -102,11 +104,6 @@ function M.call(args)
 	return cmd.exec(binary_path .. " " .. args, {
 		env = ghcup_env,
 	})
-end
-
---- Ensures that ghcup is installed, downloading if needed.
-function M.assert_installed()
-	ensure_installed()
 end
 
 return M

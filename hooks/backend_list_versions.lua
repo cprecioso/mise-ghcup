@@ -11,7 +11,6 @@ function PLUGIN:BackendListVersions(ctx)
     local tool = ctx.tool
 
     local tool_data = tools.assert_valid_tool(tool)
-    ghcup.assert_installed()
 
     -- List available versions
     local output = ghcup.call("list -t " .. tool_data.ghcup_id .. " -r")

@@ -14,7 +14,6 @@ function PLUGIN:BackendInstall(ctx)
     local install_path = ctx.install_path
 
     local tool_data = tools.assert_valid_tool(tool)
-    ghcup.assert_installed()
 
     -- Install the tool
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
