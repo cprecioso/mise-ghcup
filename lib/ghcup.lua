@@ -8,9 +8,9 @@ function M.call(args)
 
     local log = require("log")
     if RUNTIME.osType == "windows" then
-        log.debug(cmd.exec("where ghcup"))
+        log.info(cmd.exec("where ghcup"))
     else
-        log.debug(cmd.exec("which ghcup"))
+        log.info(cmd.exec("which ghcup"))
     end
 
     return cmd.exec("ghcup " .. args, {
