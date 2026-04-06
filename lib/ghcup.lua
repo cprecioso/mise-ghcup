@@ -7,6 +7,7 @@ function M.call(args)
     local cmd = require("cmd")
 
     local log = require("log")
+    log.info("HOLA!")
     if RUNTIME.osType == "windows" then
         log.info(cmd.exec("where ghcup"))
     else
