@@ -6,6 +6,13 @@ local M = {}
 function M.call(args)
     local cmd = require("cmd")
 
+    local log = require("log")
+    if RUNTIME.osType == "windows" then
+        log.debug(cmd.exec("where ghcup"))
+    else
+        log.debug(cmd.exec("which ghcup"))
+    end
+
     return cmd.exec("ghcup " .. args, {
         env = {
             GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
