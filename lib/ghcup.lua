@@ -4,14 +4,14 @@ local M = {}
 --- @param args string
 --- @return string ghcup_bin, table ghcup_env
 function M.call(args)
-  local cmd = require("cmd")
+    local cmd = require("cmd")
 
-  return cmd.exec("ghcup " .. args, {
-    env = {
-      GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
-      GHCUP_USE_XDG_DIRS = "0"
-    }
-  })
+    return cmd.exec("ghcup " .. args, {
+        env = {
+            GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
+            GHCUP_USE_XDG_DIRS = "0",
+        },
+    })
 end
 
 --- Checks if ghcup is installed by trying to call it with `--version`.
