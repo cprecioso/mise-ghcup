@@ -20,9 +20,7 @@ function PLUGIN:BackendInstall(ctx)
     log.info("Installing " .. tool .. " " .. version .. " to " .. install_path)
 
     fs.mkdir_p(cmd, install_path)
-    ghcup.call(
-        "install " .. tool_data.ghcup_id .. " " .. version .. " -i " .. install_path
-    )
+    ghcup.call("install " .. tool_data.ghcup_id .. " " .. version .. " -i " .. install_path)
 
     return {}
 end
