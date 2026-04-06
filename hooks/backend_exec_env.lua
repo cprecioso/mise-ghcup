@@ -11,7 +11,7 @@ function PLUGIN:BackendExecEnv(ctx)
 
     local bin_search_paths = {
         file.join_path(install_path, "bin"),
-        install_path,
+        install_path
     }
 
     local binary_name = tool_data.binary_name

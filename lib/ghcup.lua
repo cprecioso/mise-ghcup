@@ -1,106 +1,34 @@
 local M = {}
 
-local is_windows = RUNTIME.osType == "windows"
-
-local GITHUB_LATEST_URL = "https://api.github.com/repos/haskell/ghcup-hs/releases/latest"
-
---- Map RUNTIME arch/os values to GHCup's release asset naming.
---- @return string
-local function get_asset_name()
-	local arch_map = { amd64 = "x86_64", arm64 = "aarch64", ["386"] = "i386" }
-	local arch = arch_map[RUNTIME.archType] or RUNTIME.archType
-
-	local platform
-	if RUNTIME.osType == "darwin" then
-		platform = "apple-darwin"
-	elseif RUNTIME.osType == "windows" then
-		platform = "mingw64"
-	else
-		platform = RUNTIME.osType
-	end
-
-	return arch .. "-" .. platform .. "-ghcup"
-end
-
---- Get the path where the ghcup binary should live.
---- @return string
-local function get_binary_path()
-	local file = require("file")
-	local fs = require("fs")
-
-	return file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin", fs.exe_name("ghcup"))
-end
-
-local ghcup_env = {
-	GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
-	GHCUP_USE_XDG_DIRS = "",
-}
-
---- Download ghcup binary from GitHub releases if not already installed,
---- then execute a ghcup command.
+--- Locate the local ghcup binary and environment variables.
 --- @param args string
---- @return string output
+--- @return string ghcup_bin, table ghcup_env
 function M.call(args)
-	local cmd = require("cmd")
-	local file = require("file")
-	local fs = require("fs")
-	local http = require("http")
-	local json = require("json")
-	local log = require("log")
+  local cmd = require("cmd")
 
-	local binary_path = get_binary_path()
-	if not file.exists(binary_path) then
-		log.info("Downloading ghcup from GitHub releases...")
+  return cmd.exec("ghcup " .. args, {
+    env = {
+      GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
+      GHCUP_USE_XDG_DIRS = "0"
+    }
+  })
+end
 
-		-- Get the latest release version
-		local request = { url = GITHUB_LATEST_URL }
-		local token = os.getenv("GITHUB_TOKEN")
-		if token then
-			request.headers = { ["Authorization"] = "token " .. token }
-		end
-		local response = http.get(request)
-		local release = json.decode(response.body)
-		if not release.tag_name then
-			error("Failed to fetch ghcup release info from GitHub API (possible rate limit). Response: " .. response.body)
-		end
-		local semver = require("semver")
-		local version_parts = semver.parse(release.tag_name)
-		local version = table.concat(version_parts, ".")
+--- Checks if ghcup is installed by trying to call it with `--version`.
+--- @return boolean
+function M.is_installed()
+  local success, _ = pcall(function()
+    return M.call("--version")
+  end)
 
-		-- Build the download URL
-		local asset_name = get_asset_name()
-		if is_windows then
-			asset_name = asset_name .. "-" .. version .. ".exe"
-		else
-			asset_name = asset_name .. "-" .. version
-		end
-		local download_url = "https://github.com/haskell/ghcup-hs/releases/download/"
-			.. release.tag_name
-			.. "/"
-			.. asset_name
+  return success
+end
 
-		log.info("Downloading " .. download_url)
-
-		-- Ensure the bin directory exists
-		local bin_dir = file.join_path(RUNTIME.pluginDirPath, fs.hidden_dir("ghcup"), "bin")
-		fs.mkdir_p(cmd, bin_dir)
-
-		-- Download the binary
-		http.download_file({ url = download_url }, binary_path)
-
-		-- Make executable on Unix
-		if not is_windows then
-			cmd.exec("chmod +x " .. binary_path)
-		end
-
-		if not file.exists(binary_path) then
-			error("ghcup download failed: binary not found at " .. binary_path)
-		end
-	end
-
-	return cmd.exec(binary_path .. " " .. args, {
-		env = ghcup_env,
-	})
+--- Asserts that ghcup is installed by trying to call it with `--version`.
+function M.assert_installed()
+  if not M.is_installed() then
+    error("ghcup is not installed")
+  end
 end
 
 return M
