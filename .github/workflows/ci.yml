@@ -48,6 +48,7 @@ jobs:
         with:
           experimental: true
           install: false
+          cache: false
           mise_toml: |
             [tools."github:haskell/ghcup-hs"]
             version = "latest"
