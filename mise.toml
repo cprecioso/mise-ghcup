@@ -9,6 +9,10 @@ lua-language-server = "latest"
 pkl = "latest"
 stylua = "latest"
 
+[tools."github:haskell/ghcup-hs"]
+version = "latest"
+bin = "ghcup"
+
 [tasks.format]
 description = "Format Lua scripts"
 run = "stylua metadata.lua hooks/"
@@ -24,3 +28,6 @@ run = "hk fix"
 [tasks.ci]
 description = "Run all CI checks"
 depends = ["lint", "test"]
+
+[settings]
+experimental = true
