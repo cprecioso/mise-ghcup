@@ -47,13 +47,18 @@ jobs:
       - uses: jdx/mise-action@v4
         with:
           experimental: true
+          install: false
           mise_toml: |
             [tools."github:haskell/ghcup-hs"]
             version = "latest"
             bin = "ghcup"
 
+            [tools."ghcup:${{ matrix.tool.name }}"]
+            version = "latest"
+            depends = "github:haskell/ghcup-hs"
+
       - run: mise plugin link --force ghcup ./plugin
-      - run: mise --debug use -g ghcup:${{ matrix.tool.name }}@latest
+      - run: mise --debug install
       - run: mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
       - run: |
           mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
