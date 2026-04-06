@@ -49,6 +49,7 @@ jobs:
           experimental: true
           install: false
           cache: false
+          log_level: debug
           mise_toml: |
             [tools."github:haskell/ghcup-hs"]
             version = "latest"
@@ -59,7 +60,7 @@ jobs:
             depends = "github:haskell/ghcup-hs"
 
       - run: mise plugin link --force ghcup ./plugin
-      - run: mise --debug install
-      - run: mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
+      - run: mise install
+      - run: mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
       - run: |
-          mise --debug exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
+          mise exec ghcup:${{ matrix.tool.name }}@latest -- ${{ runner.os == 'Windows' && 'where' || 'which' }} ${{ matrix.tool.command }}
