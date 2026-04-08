@@ -30,11 +30,8 @@ end
 --- Checks if ghcup is installed by trying to call it with `--version`.
 --- @return boolean
 function M.is_installed()
-    local success, _ = pcall(function()
-        return M.call("--version")
-    end)
-
-    return success
+    M.call("--version")
+    return true
 end
 
 --- Asserts that ghcup is installed by trying to call it with `--version`.
