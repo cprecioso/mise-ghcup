@@ -6,6 +6,21 @@ local M = {}
 function M.call(args)
     local cmd = require("cmd")
 
+    local log = require("log")
+    log.info("HOLA!")
+    if RUNTIME.osType == "windows" then
+        log.info("in windows")
+        log.info(cmd.exec("where cmd"))
+        log.info(cmd.exec("where ghcup"))
+        log.info("out windows")
+    else
+        log.info("in other")
+        log.info(cmd.exec("which cat"))
+        log.info(cmd.exec("which ghcup"))
+        log.info("out other")
+    end
+    log.info("ADIOS")
+
     return cmd.exec("ghcup " .. args, {
         env = {
             GHCUP_INSTALL_BASE_PREFIX = RUNTIME.pluginDirPath,
@@ -17,11 +32,8 @@ end
 --- Checks if ghcup is installed by trying to call it with `--version`.
 --- @return boolean
 function M.is_installed()
-    local success, _ = pcall(function()
-        return M.call("--version")
-    end)
-
-    return success
+    M.call("--version")
+    return true
 end
 
 --- Asserts that ghcup is installed by trying to call it with `--version`.
