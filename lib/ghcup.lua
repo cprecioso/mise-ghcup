@@ -10,10 +10,12 @@ function M.call(args)
     log.info("HOLA!")
     if RUNTIME.osType == "windows" then
         log.info("in windows")
+        log.info(cmd.exec("where cmd"))
         log.info(cmd.exec("where ghcup"))
         log.info("out windows")
     else
         log.info("in other")
+        log.info(cmd.exec("which cat"))
         log.info(cmd.exec("which ghcup"))
         log.info("out other")
     end
