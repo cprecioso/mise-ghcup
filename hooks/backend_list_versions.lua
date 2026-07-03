@@ -4,7 +4,7 @@
 --- @return BackendListVersionsResult
 function PLUGIN:BackendListVersions(ctx)
     local ghcup = require("ghcup")
-    local semver = require("semver")
+    local version = require("version")
     local strings = require("strings")
     local tools = require("tools")
 
@@ -32,7 +32,10 @@ function PLUGIN:BackendListVersions(ctx)
         error("No versions found for " .. tool)
     end
 
-    versions = semver.sort(versions)
+    -- Sort ascending (oldest -> newest), as mise expects. We use our own
+    -- version comparison because the built-in semver.sort assumes 3-component
+    -- versions and mis-orders the 1-to-4-component (PVP) versions these tools use.
+    versions = version.sort(versions)
 
     return { versions = versions }
 end
