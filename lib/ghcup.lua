@@ -22,7 +22,7 @@ end
 --- Locate the local ghcup binary and environment variables.
 --- @param ghcup_id string The ghcup id whose isolated home to use
 --- @param args string
---- @return string ghcup_bin, table ghcup_env
+--- @return string
 function M.call(ghcup_id, args)
     local cmd = require("cmd")
     local fs = require("fs")
