@@ -10,7 +10,7 @@ It lets you manage these tools with mise, pinned per project and reproducible ac
 > [!NOTE]
 >
 > These tools are also available, but we don't recommend to install them through GHCup, since they are installable through the Aqua backend, which provides better performance and supply chain safety:
-> - `mise-ghcup:stack` – the Stack build tool (just use the `stack` tool instead, will pull from Aqua) 
+> - `mise-ghcup:stack` – the Stack build tool (just use the `stack` tool instead, will pull from Aqua)
 > - `mise-ghcup:cabal` – the Cabal build tool (just use the `cabal` tool instead, will pull from Aqua)
 
 ## Prerequisites
@@ -33,7 +33,7 @@ min_version = "2026.7.0"
 "mise-ghcup:hls" = "latest"
 
 [plugins]
-"vfox:mise-ghcup" = "https://github.com/cprecioso/mise-ghcup.git"
+"vfox:mise-ghcup" = "https://github.com/wasp-lang/mise-ghcup.git"
 
 [settings]
 # Backend plugins are experimental, so we need to enable them here.
