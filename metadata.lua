@@ -22,8 +22,8 @@ PLUGIN = { -- luacheck: ignore
 
     depends = { "ghcup", "aqua:ghcup" },
 
-    -- Prerequisites mise checks before installing, so a missing one is reported
-    -- up front instead of halfway through a bindist build.
+    -- Prerequisites mise checks before installing, so a missing one is installed
+    -- or reported up front instead of blowing up halfway through a bindist build.
     systemDependencies = {
         -- GHC links against gmp at runtime, and a missing libgmp is the classic
         -- "ghc: error while loading shared libraries" on minimal Linux images.
@@ -35,19 +35,18 @@ PLUGIN = { -- luacheck: ignore
         },
 
         -- Installing a GHC bindist runs `./configure && make install`, and GHC
-        -- shells out to a C compiler to link. These are marked optional on
-        -- purpose: they are genuinely needed on Linux and macOS, but mise has no
-        -- per-OS filter on these entries and resolves `bin` without PATHEXT, so a
-        -- required check would false-alarm on Windows. Optional entries never
-        -- prompt or fail, they just print a hint when missing.
+        -- shells out to a C compiler to link. These are required rather than
+        -- `optional` because mise only ever mentions optional entries, it never
+        -- installs them. The cost is Windows, where GHCup uses its own MSYS2
+        -- toolchain and mise's `bin` lookup ignores PATHEXT: these are reported
+        -- as missing with no package manager to fix them. That is a warning
+        -- only, it never fails the install.
         {
             bin = "make",
-            optional = "installing a GHC bindist on Linux/macOS",
             packages = { apt = "make", dnf = "make", pacman = "make", apk = "make" },
         },
         {
             bin = "gcc",
-            optional = "the C toolchain GHC uses to compile and link",
             packages = { apt = "build-essential", dnf = "gcc", pacman = "gcc", apk = "gcc" },
         },
     },
