@@ -53,6 +53,9 @@ jobs:
     container:
       image: ${{ matrix.env.image }}
 
+    env:
+      MISE_SYSTEM_DEPS: auto
+
     steps:
       - if: matrix.env.install-step
         run: ${{ matrix.env.install-step }}

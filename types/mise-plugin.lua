@@ -9,6 +9,7 @@
 ---@class Runtime
 ---@field osType string Operating system type (e.g. "linux", "darwin", "windows")
 ---@field archType string Architecture type (e.g. "amd64", "arm64")
+---@field envType string? libc environment ("gnu" on glibc Linux, "musl" on musl Linux, nil elsewhere)
 ---@field version string Runtime version
 ---@field pluginDirPath string Path to the plugin directory
 RUNTIME = {}
@@ -98,16 +99,23 @@ ARCH_TYPE = ""
 ---@class MisePathCtx
 ---@field options table Plugin options from mise.toml
 
+--- Tool options from `mise.toml`. TOML values keep their types: strings stay
+--- strings, arrays become sequence tables, tables become map tables.
+---@alias BackendOptions table<string, any>
+
 ---@class BackendListVersionsCtx
 ---@field tool string Tool name
+---@field options BackendOptions Tool options from mise.toml
 
 ---@class BackendListVersionsResult
----@field versions string[] List of available versions
+---@field versions string[] List of available versions, ascending (mise does not re-sort)
 
 ---@class BackendInstallCtx
 ---@field tool string Tool name
 ---@field version string Version to install
 ---@field install_path string Path where the tool should be installed
+---@field download_path string Scratch directory for downloads
+---@field options BackendOptions Tool options from mise.toml
 
 ---@class BackendInstallResult
 
@@ -115,12 +123,34 @@ ARCH_TYPE = ""
 ---@field tool string Tool name
 ---@field version string Installed version
 ---@field install_path string Installation path
+---@field options BackendOptions Tool options from mise.toml
 
 ---@class BackendExecEnvResult
 ---@field env_vars EnvKey[] Environment variables to set
 
+--- A single `PLUGIN.systemDependencies` entry: a system prerequisite mise checks
+--- before installing. Exactly one of bin/pkgconfig/sharedlib/command must be set.
+--- Note there is no per-OS filter: only `sharedlib` is Linux-only (auto-satisfied
+--- elsewhere), the others are checked on every platform.
+---@class SystemDependency
+---@field bin? string Executable that must resolve on PATH
+---@field pkgconfig? string Module discoverable via `pkg-config --exists`
+---@field sharedlib? string Soname the dynamic linker must resolve (Linux only)
+---@field command? string Shell command whose exit status 0 means satisfied
+---@field version? string Constraint for bin/pkgconfig, e.g. ">=3.0" (bare "3.0" means ">=3.0")
+---@field optional? string Reason this is wanted; missing optional deps never prompt or fail
+---@field packages? table<string, string> Package manager name (brew, apt, dnf, pacman, apk, ...) to package name
+
 ---@class Plugin
 ---@field name string Plugin name
+---@field version string Plugin version
+---@field description? string
+---@field author? string
+---@field license? string
+---@field homepage? string
+---@field legacyFilenames? string[] Idiomatic version files this plugin can parse
+---@field depends? string[] Tools whose bin paths should be available during hooks
+---@field systemDependencies? SystemDependency[] System prerequisites checked before install
 ---@field Available? fun(self: Plugin, ctx: AvailableCtx): AvailableVersion[]
 ---@field PreInstall? fun(self: Plugin, ctx: PreInstallCtx): PreInstallResult
 ---@field PostInstall? fun(self: Plugin, ctx: PostInstallCtx)
@@ -148,10 +178,16 @@ PLUGIN = {}
 ---@field headers table<string, string> Response headers
 ---@field body string Response body (only for get, not head)
 
+--- The plain get/head/download_file raise a Lua error on transport failures
+--- (timeout, DNS, connection refused). Since pcall cannot catch errors from these
+--- async functions, use the try_ variants to handle failures yourself.
 ---@class http
----@field get fun(opts: HttpRequestOpts): HttpResponse Send a GET request
----@field head fun(opts: HttpRequestOpts): HttpResponse Send a HEAD request (no body)
----@field download_file fun(opts: HttpRequestOpts, path: string) Download a file to disk
+---@field get fun(opts: HttpRequestOpts): HttpResponse Send a GET request (raises on failure)
+---@field try_get fun(opts: HttpRequestOpts): HttpResponse?, string? Send a GET request, returns (resp, nil) or (nil, err)
+---@field head fun(opts: HttpRequestOpts): HttpResponse Send a HEAD request, no body (raises on failure)
+---@field try_head fun(opts: HttpRequestOpts): HttpResponse?, string? Send a HEAD request, returns (resp, nil) or (nil, err)
+---@field download_file fun(opts: HttpRequestOpts, path: string) Download a file to disk (raises on failure)
+---@field try_download_file fun(opts: HttpRequestOpts, path: string): boolean?, string? Download a file, returns (true, nil) or (nil, err)
 local http = {}
 
 -- json module --------------------------------------------------------
@@ -163,9 +199,23 @@ local json = {}
 
 -- file module --------------------------------------------------------
 
+---@class FileStat
+---@field size integer Size in bytes
+---@field is_file boolean
+---@field is_dir boolean
+---@field is_symlink boolean
+---@field modified integer? Unix timestamp in seconds
+---@field accessed integer? Unix timestamp in seconds
+---@field created integer? Unix timestamp in seconds
+---@field mode string? Octal permission string on Unix, nil on Windows
+
 ---@class file
 ---@field read fun(path: string): string Read file contents
 ---@field exists fun(path: string): boolean Check if a file exists
+---@field stat fun(path: string): FileStat? Metadata of a path, or nil if it does not exist
+---@field list fun(path: string): string[] Immediate entries of a directory, sorted
+---@field glob fun(pattern: string): string[] Paths matching a glob, sorted
+---@field move fun(src: string, dst: string) Move a file or directory, creating parent dirs
 ---@field symlink fun(src: string, dst: string) Create a symbolic link
 ---@field join_path fun(...: string): string Join path components
 local file = {}
