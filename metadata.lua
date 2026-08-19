@@ -22,32 +22,12 @@ PLUGIN = { -- luacheck: ignore
 
     depends = { "ghcup", "aqua:ghcup" },
 
-    -- Prerequisites mise checks before installing, so a missing one is installed
-    -- or reported up front instead of blowing up halfway through a bindist build.
+    -- `ghcup` downloads with curl by default, and unpacks with linked-in
+    -- libarchive rather than a shelled-out tar.
     systemDependencies = {
-        -- GHC links against gmp at runtime, and a missing libgmp is the classic
-        -- "ghc: error while loading shared libraries" on minimal Linux images.
-        -- `sharedlib` checks only run on Linux (auto-satisfied elsewhere), which
-        -- is what we want: this is a Linux packaging problem.
         {
-            sharedlib = "libgmp.so.10",
-            packages = { apt = "libgmp-dev", dnf = "gmp-devel", pacman = "gmp", apk = "gmp-dev" },
-        },
-
-        -- Installing a GHC bindist runs `./configure && make install`, and GHC
-        -- shells out to a C compiler to link. These are required rather than
-        -- `optional` because mise only ever mentions optional entries, it never
-        -- installs them. The cost is Windows, where GHCup uses its own MSYS2
-        -- toolchain and mise's `bin` lookup ignores PATHEXT: these are reported
-        -- as missing with no package manager to fix them. That is a warning
-        -- only, it never fails the install.
-        {
-            bin = "make",
-            packages = { apt = "make", dnf = "make", pacman = "make", apk = "make" },
-        },
-        {
-            bin = "gcc",
-            packages = { apt = "build-essential", dnf = "gcc", pacman = "gcc", apk = "gcc" },
+            bin = "curl",
+            packages = { brew = "curl", apt = "curl", dnf = "curl", pacman = "curl", apk = "curl" },
         },
     },
 }
