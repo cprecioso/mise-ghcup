@@ -33,12 +33,18 @@ min_version = "2026.7.0"
 "mise-ghcup:hls" = "latest"
 
 [plugins]
-"vfox:mise-ghcup" = "https://github.com/wasp-lang/mise-ghcup.git"
+"vfox-backend:mise-ghcup" = "https://github.com/wasp-lang/mise-ghcup.git"
 
 [settings]
 # Backend plugins are experimental, so we need to enable them here.
 experimental = true
 ```
+
+> [!IMPORTANT]
+>
+> The `vfox-backend:` prefix is required. `vfox:` declares a *tool* plugin, and mise
+> then fails to resolve the tools with `Invalid version: ghc: relative URL without a
+> base`. If you have `"vfox:mise-ghcup"` in your `mise.toml`, update it.
 
 Then install everything:
 

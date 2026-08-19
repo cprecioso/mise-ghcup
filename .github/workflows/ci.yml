@@ -53,6 +53,11 @@ jobs:
     container:
       image: ${{ matrix.env.image }}
 
+    env:
+      # Report missing systemDependencies instead of prompting or installing them,
+      # so a mis-declared check shows up in the log rather than stalling the job.
+      MISE_SYSTEM_DEPS: warn
+
     steps:
       - if: matrix.env.install-step
         run: ${{ matrix.env.install-step }}
