@@ -22,8 +22,6 @@ PLUGIN = { -- luacheck: ignore
 
     depends = { "ghcup", "aqua:ghcup" },
 
-    -- `ghcup` downloads with curl by default, and unpacks with linked-in
-    -- libarchive rather than a shelled-out tar.
     systemDependencies = {
         {
             bin = "curl",
