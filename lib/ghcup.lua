@@ -2,32 +2,32 @@ local M = {}
 
 local is_windows = RUNTIME.osType == "windows"
 
---- Each tool gets its own ghcup home. Separating the base dir allows parallel
---- installs without race conditions.
---- On Windows, we use a short base since GHC has deeply-nested files that might
---- exceed the 260-char MAX_PATH limit. Elsewhere, we keep it inside the plugin
---- dir to stay self-contained.
+--- Base prefix for calls that only read ghcup's release metadata (`list`,
+--- `--version`). ghcup caches the metadata YAML under `<base>/.ghcup`, so we
+--- keep this inside the plugin dir to stay self-contained and reuse the cache
+--- across runs. One dir per tool, so concurrent calls for different tools don't
+--- race on the same cache. Nothing deep is written here, so the Windows
+--- MAX_PATH limit is not a concern.
 ---
 --- @param ghcup_id string The ghcup id of the tool (e.g. "ghc", "cabal")
 --- @return string
-local function install_base_prefix(ghcup_id)
+function M.metadata_base_prefix(ghcup_id)
     local file = require("file")
-    if is_windows then
-        return "C:\\" .. ghcup_id
-    else
-        return file.join_path(RUNTIME.pluginDirPath, ghcup_id)
-    end
+    return file.join_path(RUNTIME.pluginDirPath, ghcup_id)
 end
 
---- Locate the local ghcup binary and environment variables.
---- @param ghcup_id string The ghcup id whose isolated home to use
+--- Run ghcup with its home (`<base_prefix>/.ghcup`) pointed at `base_prefix`.
+--- Callers choose the base: metadata-only calls want a stable cache
+--- (`metadata_base_prefix`), installs want mise's scratch dir so the bindist
+--- staging is isolated per tool+version and cleaned up afterwards.
+---
+--- @param base_prefix string Value for GHCUP_INSTALL_BASE_PREFIX
 --- @param args string
 --- @return string
-function M.call(ghcup_id, args)
+function M.call(base_prefix, args)
     local cmd = require("cmd")
     local fs = require("fs")
 
-    local base_prefix = install_base_prefix(ghcup_id)
     fs.mkdir_p(cmd, base_prefix)
 
     return cmd.exec("ghcup " .. args, {
@@ -38,20 +38,20 @@ function M.call(ghcup_id, args)
 end
 
 --- Checks if ghcup is installed by trying to call it with `--version`.
---- @param ghcup_id string The ghcup id whose isolated home to use
+--- @param base_prefix string Value for GHCUP_INSTALL_BASE_PREFIX
 --- @return boolean
-function M.is_installed(ghcup_id)
+function M.is_installed(base_prefix)
     local success, _ = pcall(function()
-        return M.call(ghcup_id, "--version")
+        return M.call(base_prefix, "--version")
     end)
 
     return success
 end
 
 --- Asserts that ghcup is installed by trying to call it with `--version`.
---- @param ghcup_id string The ghcup id whose isolated home to use
-function M.assert_installed(ghcup_id)
-    if not M.is_installed(ghcup_id) then
+--- @param base_prefix string Value for GHCUP_INSTALL_BASE_PREFIX
+function M.assert_installed(base_prefix)
+    if not M.is_installed(base_prefix) then
         error("ghcup is not installed")
     end
 

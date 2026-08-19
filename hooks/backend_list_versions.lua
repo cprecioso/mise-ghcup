@@ -11,10 +11,13 @@ function PLUGIN:BackendListVersions(ctx)
     local tool = ctx.tool
 
     local tool_data = tools.assert_valid_tool(tool)
-    ghcup.assert_installed(tool_data.ghcup_id)
+
+    -- No install happens here, so ghcup only needs a home for its metadata cache.
+    local base_prefix = ghcup.metadata_base_prefix(tool_data.ghcup_id)
+    ghcup.assert_installed(base_prefix)
 
     -- List available versions
-    local output = ghcup.call(tool_data.ghcup_id, "list -t " .. tool_data.ghcup_id .. " -r")
+    local output = ghcup.call(base_prefix, "list -t " .. tool_data.ghcup_id .. " -r")
 
     local versions = {}
     for _, line in ipairs(strings.split(output, "\n")) do
