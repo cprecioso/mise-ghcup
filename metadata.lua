@@ -21,11 +21,4 @@ PLUGIN = { -- luacheck: ignore
     },
 
     depends = { "ghcup", "aqua:ghcup" },
-
-    systemDependencies = {
-        {
-            bin = "curl",
-            packages = { brew = "curl", apt = "curl", dnf = "curl", pacman = "curl", apk = "curl" },
-        },
-    },
 }
