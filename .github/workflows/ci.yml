@@ -71,11 +71,15 @@ jobs:
           cache: false
           log_level: debug
           mise_toml: |
+            min_version = "2026.8.8"
+
             [tools]
             "ghcup" = "latest"
             "mise-ghcup:${{ matrix.tool.name }}" = "latest"
 
-      - run: mise plugin link --force mise-ghcup ./plugin
+            [plugins]
+            "vfox-backend:mise-ghcup" = "./plugin"
+
       - run: mise install
       - run: mise exec mise-ghcup:${{ matrix.tool.name }}@latest -- ${{ matrix.tool.command }} --version
       - run: |
